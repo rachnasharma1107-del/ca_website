@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 node_modules
 .next
 out
@@ -11,7 +10,6 @@ npm-debug.log*
 .DS_Store
 *.pem
 .vercel
-=======
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
 # dependencies
@@ -47,10 +45,5 @@ yarn-error.log*
 
 # typescript
 *.tsbuildinfo
->>>>>>> 7d83a8246cd11011f6591ad88fc74d05d7aadc4b
 next-env.d.ts
-<<<<<<< HEAD
-your local .gitignore
-=======
 GitHub's .gitignore
->>>>>>> origin/main
