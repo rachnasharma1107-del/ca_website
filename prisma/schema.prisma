@@ -1,0 +1,169 @@
+// ============================================================================
+// Praveen Aggarwal & Co. — Database Schema
+// PostgreSQL via Prisma ORM
+// ============================================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ----------------------------------------------------------------------------
+// AUTH: only pre-seeded (whitelisted) users may log in, via email OTP.
+// No passwords are stored anywhere — passwordless by design.
+// ----------------------------------------------------------------------------
+
+enum UserRole {
+  ADMIN
+  EDITOR
+}
+
+model User {
+  id        String     @id @default(cuid())
+  email     String     @unique
+  name      String
+  role      UserRole   @default(ADMIN)
+  isActive  Boolean    @default(true)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  otpCodes  OtpCode[]
+  sessions  Session[]
+  blogPosts BlogPost[]
+
+  @@index([email])
+  @@map("users")
+}
+
+/// One-time-passcodes for email login. Codes are stored as salted hashes,
+/// never in plaintext, and are single-use + short-lived.
+model OtpCode {
+  id          String    @id @default(cuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  codeHash    String
+  expiresAt   DateTime
+  consumedAt  DateTime?
+  attempts    Int       @default(0)
+  maxAttempts Int       @default(5)
+  requestIp   String?
+  createdAt   DateTime  @default(now())
+
+  @@index([userId, expiresAt])
+  @@map("otp_codes")
+}
+
+/// Server-side session record backing the httpOnly session cookie (JWT jti).
+/// Lets us revoke sessions server-side (logout everywhere, admin deactivation).
+model Session {
+  id         String    @id @default(cuid())
+  userId     String
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash  String    @unique
+  userAgent  String?
+  ipAddress  String?
+  expiresAt  DateTime
+  revokedAt  DateTime?
+  createdAt  DateTime  @default(now())
+
+  @@index([userId])
+  @@map("sessions")
+}
+
+/// Append-only audit trail for security-sensitive events (login attempts,
+/// enquiry submissions, admin content changes). Required at enterprise level.
+model AuditLog {
+  id        String   @id @default(cuid())
+  action    String
+  actorType String // "USER" | "SYSTEM" | "ANONYMOUS"
+  actorId   String?
+  targetId  String?
+  metadata  Json?
+  ipAddress String?
+  createdAt DateTime @default(now())
+
+  @@index([action, createdAt])
+  @@map("audit_logs")
+}
+
+// ----------------------------------------------------------------------------
+// CONTENT: Services & Blog
+// ----------------------------------------------------------------------------
+
+enum ContentStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+model Service {
+  id              String        @id @default(cuid())
+  slug            String        @unique
+  title           String
+  summary         String
+  content         String // rich text / markdown
+  icon            String? // icon identifier for lightweight UI rendering
+  order           Int           @default(0)
+  status          ContentStatus @default(PUBLISHED)
+  metaTitle       String?
+  metaDescription String?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  @@index([status, order])
+  @@map("services")
+}
+
+model BlogPost {
+  id              String        @id @default(cuid())
+  slug            String        @unique
+  title           String
+  excerpt         String
+  content         String // markdown
+  coverImage      String?
+  status          ContentStatus @default(DRAFT)
+  metaTitle       String?
+  metaDescription String?
+  authorId        String?
+  author          User?         @relation(fields: [authorId], references: [id], onDelete: SetNull)
+  publishedAt     DateTime?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  @@index([status, publishedAt])
+  @@map("blog_posts")
+}
+
+// ----------------------------------------------------------------------------
+// ENQUIRIES: submissions from the public Contact Us form, surfaced on the
+// admin dashboard.
+// ----------------------------------------------------------------------------
+
+enum EnquiryStatus {
+  NEW
+  IN_PROGRESS
+  RESOLVED
+  SPAM
+}
+
+model Enquiry {
+  id          String        @id @default(cuid())
+  name        String
+  email       String
+  phone       String?
+  subject     String?
+  message     String
+  serviceSlug String? // optional link to the service they're enquiring about
+  status      EnquiryStatus @default(NEW)
+  ipAddress   String?
+  userAgent   String?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  @@index([status, createdAt])
+  @@map("enquiries")
+}
