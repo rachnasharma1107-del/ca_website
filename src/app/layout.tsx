@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Fraunces, Plus_Jakarta_Sans } from "next/font/google";
+import { Manrope, Red_Hat_Display } from "next/font/google";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import { buildMetadata, SITE_NAME, SITE_DESCRIPTION, SITE_URL } from "@/lib/seo/metadata";
@@ -7,16 +7,16 @@ import { organizationJsonLd } from "@/lib/seo/jsonld";
 import { safeJsonLd } from "@/lib/seo/safe-json-ld";
 import "./globals.css";
 
-const sans = Plus_Jakarta_Sans({
+const sans = Manrope({
   subsets: ["latin"],
-  weight: ["500", "600", "700"],
+  weight: ["400", "500", "600", "700"],
   variable: "--font-sans",
   display: "swap",
 });
 
-const serif = Fraunces({
+const serif = Red_Hat_Display({
   subsets: ["latin"],
-  weight: ["500", "600", "700"],
+  weight: ["400", "500", "600", "700"],
   variable: "--font-serif",
   display: "swap",
 });
